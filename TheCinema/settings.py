@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import environ
+import os
 from pathlib import Path
 
 
@@ -96,11 +97,16 @@ CSRF_COOKIE_SECURE = True
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+# Config DataBase on Postgresql
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('NAME_DATABASE'),
+        'USER': env('USER_DATABASE'),
+        'PASSWORD': env('PASSWORD_DATABASE'),
+        'HOST': env('HOST_DATABASE'),
+        'PORT': env('PORT_DATABASE')
     }
 }
 
