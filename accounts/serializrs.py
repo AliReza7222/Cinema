@@ -3,7 +3,7 @@ from django.contrib.auth.hashers import make_password
 from .models import UserSite
 
 
-class SignUp(serializers.ModelSerializer):
+class SignUpSerializers(serializers.ModelSerializer):
 
     re_password = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True)
