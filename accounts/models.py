@@ -38,4 +38,4 @@ class UserSite(AbstractUser):
     objects = UserSiteManager()
 
     def __str__(self):
-        return self.username
+        return self.phone_number
