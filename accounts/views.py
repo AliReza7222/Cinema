@@ -1,6 +1,7 @@
 from django.core.cache import cache
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
@@ -66,3 +67,20 @@ class SignInView(APIView):
                                     status=status.HTTP_200_OK)
 
             return Response({"message": 'code is invalid !'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class RefreshTokenView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.data.get('refresh_token')
+
+        if not refresh_token:
+            return Response({'error': 'Please provide a refresh token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = refresh.access_token
+            return Response({'access_token': str(access_token)}, status=status.HTTP_200_OK)
+
+        except TokenError:
+            return Response({'error': 'Invalid refresh token.'}, status=status.HTTP_401_UNAUTHORIZED)
