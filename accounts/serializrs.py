@@ -48,3 +48,7 @@ class SignInStepOneSerializer(serializers.Serializer):
 
 class SignInStepTwoSerializer(serializers.Serializer):
     verification_code = serializers.CharField(max_length=6, write_only=True)
+
+
+class GetPhoneNumberSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()
