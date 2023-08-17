@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import environ
 import os
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -24,6 +25,10 @@ env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+
+# APi Key KavehNegar and Phone Number
+APIKEY = env('APIKEY')
+PHONE_NUMBER = env('PHONE_NUMBER')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")
@@ -48,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt',
     'accounts',
 
 ]
@@ -62,6 +68,24 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# config Rest Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+# config Simple Jwt for authentication user
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=7),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=10),
+    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=7),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(hours=10),
+    "SIGNING_KEY": SECRET_KEY,
+    "ALGORITHM": "HS384",
+
+}
 
 ROOT_URLCONF = 'TheCinema.urls'
 
