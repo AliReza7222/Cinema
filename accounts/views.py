@@ -115,7 +115,6 @@ class ChangePasswordView(APIView):
                                      'step_continue': '2', 'phone_number': str(user.phone_number)}
                                     , status=status.HTTP_200_OK)
 
-
                 except ObjectDoesNotExist:
                     return Response({'message': 'Phone Number Invalid !'}, status=status.HTTP_404_NOT_FOUND)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
