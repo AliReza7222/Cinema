@@ -25,7 +25,8 @@ def send_sms_token_login(phone_number, message):
     }
     # use code under for send code to users when buy a service from Kavenegar
     # -----> response = api.sms_send(params)
-    response = api.sms_send(params)
-    # response = params['message']
+    # response = api.sms_send(params)
+    # Now is in develop project so response is a str equal send ok
+    response = 'send ok'
     return response
 

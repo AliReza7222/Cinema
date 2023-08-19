@@ -10,6 +10,9 @@ class Room(models.Model):
     quantity_person = models.PositiveIntegerField()
     address_room = models.TextField(blank=True, null=True)
 
+    def __str__(self):
+        return self.name_room
+
 
 class Movie(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
@@ -22,4 +25,7 @@ class Movie(models.Model):
     time_movie = models.TimeField()
     datetime_start = models.DateTimeField()
     about_movie = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name_movie
 
