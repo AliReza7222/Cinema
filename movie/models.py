@@ -10,6 +10,7 @@ class Room(models.Model):
     name_room = models.CharField(max_length=100, validators=[check_name_word_and_number], unique=True)
     quantity_person = models.PositiveIntegerField()
     address_room = models.TextField(blank=True, null=True)
+    seat_reserved = models.TextField(validators=[is_number], default='0', editable=False)
 
     def __str__(self):
         return self.name_room
@@ -17,6 +18,7 @@ class Room(models.Model):
 
 class Movie(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+    permission_sell = models.BooleanField(default=True)
     image_movie = models.ImageField(upload_to='image_movie/')
     director_movie = models.CharField(max_length=150)
     price_ticket = models.CharField(max_length=10, validators=[is_number])
@@ -28,6 +30,10 @@ class Movie(models.Model):
     about_movie = models.TextField(blank=True, null=True)
     registered_ticket = models.PositiveIntegerField(default=0, editable=False)
 
+    def delete(self, using=None, keep_parents=False):
+        self.image_movie.storage.delete(str(self.image_movie.name))
+        super().delete()
+
     def __str__(self):
         return self.name_movie
 
@@ -36,6 +42,7 @@ class TicketMovie(models.Model):
     id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     user_client = models.ForeignKey(UserSite, on_delete=models.CASCADE)
     movie_ticket = models.ForeignKey(Movie, on_delete=models.CASCADE)
+    seat_number = models.CharField(max_length=10, validators=[is_number])
     datetime_bought = models.DateTimeField(auto_now=True)
     key_data = models.CharField(max_length=50, unique=True)
     encode_data = models.CharField(max_length=300)
