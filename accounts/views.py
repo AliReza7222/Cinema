@@ -25,7 +25,7 @@ class SignInView(APIView):
             user = find_user[0]
             check_password_user = check_password(password, user.password)
             if check_password_user:
-                return True
+                return user
         return False
 
     def send_sms_to_user(self, phone_number):
@@ -48,15 +48,17 @@ class SignInView(APIView):
                 valid_info = self.check_user(phone_number, password)
                 if valid_info:
                     result = self.send_sms_to_user(phone_number)
-
+                    user = valid_info
                     response = Response({'message': result, 'step_now': 'Ok', 'step_continue': '2',
-                                         'phone_number': phone_number},
+                                         'user': user.id},
                                         status=status.HTTP_200_OK)
                     return response
             return Response({'message': 'phone number or password invalid !'}, status=status.HTTP_404_NOT_FOUND)
 
         elif step == '2':
-            phone_number = request.GET.get('phone_number')
+            id_user = request.GET.get('user')
+            user = UserSite.objects.get(id=id_user)
+            phone_number = user.phone_number
             serializer = SignInStepTwoSerializer(data=request.data)
             real_token = cache.get(f"{phone_number}_user")
             if serializer.is_valid():
