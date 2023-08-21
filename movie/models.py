@@ -41,7 +41,7 @@ class Movie(models.Model):
 class TicketMovie(models.Model):
     id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     user_client = models.ForeignKey(UserSite, on_delete=models.CASCADE)
-    movie_ticket = models.ForeignKey(Movie, on_delete=models.CASCADE)
+    movie_ticket = models.ForeignKey(Movie, on_delete=models.SET_NULL, null=True)
     seat_number = models.CharField(max_length=10, validators=[is_number])
     datetime_bought = models.DateTimeField(auto_now=True)
     key_data = models.CharField(max_length=50, unique=True)
