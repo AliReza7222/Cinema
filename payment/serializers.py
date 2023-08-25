@@ -11,7 +11,8 @@ class TransactionsSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id',
             'movie_id',
-            'user'
+            'user',
+            'datetime_transactions'
         ]
 
 

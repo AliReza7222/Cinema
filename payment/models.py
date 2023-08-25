@@ -12,7 +12,11 @@ class Transactions(models.Model):
     full_name_client = models.CharField(max_length=150, null=True, blank=True)
     amount = models.CharField(max_length=10)
     email_client = models.EmailField(null=True, blank=True)
+    datetime_transactions = models.DateTimeField(auto_now=True)
     link_back = models.CharField(max_length=250)
+
+    def __str__(self):
+        return f'{self.user}   /   {self.datetime_transactions}   /   {self.amount}$'
 
 
 class Payment(models.Model):
@@ -22,5 +26,8 @@ class Payment(models.Model):
     movie_id = models.ForeignKey(Movie, on_delete=models.SET_NULL, null=True)
     amount = models.CharField(max_length=10)
     date_payment = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.amount}/{self.date_payment}/{self.status}'
 
 
