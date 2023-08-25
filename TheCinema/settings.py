@@ -80,9 +80,9 @@ REST_FRAMEWORK = {
 
 # config Simple Jwt for authentication user
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(hours=10),
-    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=7),
+    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=15),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(hours=10),
     "SIGNING_KEY": SECRET_KEY,
     "ALGORITHM": "HS384",
