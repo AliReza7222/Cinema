@@ -21,7 +21,7 @@ class Transactions(models.Model):
 
 class Payment(models.Model):
     id = models.UUIDField(default=uuid.uuid4, editable=True, primary_key=True)
-    status = models.PositiveIntegerField()
+    status = models.PositiveIntegerField(editable=False)
     transaction_id = models.ForeignKey(Transactions, on_delete=models.CASCADE)
     movie_id = models.ForeignKey(Movie, on_delete=models.SET_NULL, null=True)
     amount = models.CharField(max_length=10)

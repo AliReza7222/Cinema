@@ -54,9 +54,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
-    'accounts',
-    'movie',
-    'payment'
+    'accounts.apps.AccountsConfig',
+    'movie.apps.MovieConfig',
+    'payment.apps.PaymentConfig'
 
 ]
 
