@@ -8,11 +8,13 @@ def encode_data(data):
     encode = obj_fernet.encrypt(data.encode())
     string_encode = encode.decode('utf-8')
 
-    return {'data-encode': string_encode, 'key': key}
+    return string_encode, key.decode('utf-8')
 
 
 def decode_data(data_encode, key):
     data_encode = data_encode.encode('utf-8')
+    key = key.encode('utf-8')
     obj_fernet = Fernet(key)
     decode = obj_fernet.decrypt(data_encode).decode('utf-8')
     return eval(decode)
+

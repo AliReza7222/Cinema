@@ -30,3 +30,7 @@ class RecordMovieSerializer(serializers.ModelSerializer):
             'image_movie',
             'about_movie'
         ]
+
+
+class GetKeyTicketMovieSerializer(serializers.Serializer):
+    key_data = serializers.CharField(max_length=50)

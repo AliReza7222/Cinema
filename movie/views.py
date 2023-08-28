@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from .permissions import IsSuperUser
-from .utils import encode_data
-from .models import Movie, Room
-from .serializers import RecordRoomSerializer, RecordMovieSerializer
+from .utils import decode_data
+from .models import Movie, Room, TicketMovie
+from .serializers import RecordRoomSerializer, RecordMovieSerializer, GetKeyTicketMovieSerializer
 
 
 class RecordRoomView(CreateAPIView):
@@ -40,3 +40,16 @@ class ShowAllMovie(ListAPIView):
             data[movie.get('name_movie')] = movie
         return Response(data, status=status.HTTP_200_OK)
 
+
+class DecodeDataTicket(APIView):
+    permission_classes = [IsAuthenticated, IsSuperUser]
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        serializer = GetKeyTicketMovieSerializer(data=data)
+        if serializer.is_valid():
+            key_data = serializer.validated_data.get('key_data')
+            ticket_movie = TicketMovie.objects.get(key_data=key_data)
+            data_ticket = decode_data(ticket_movie.encode_data, key_data)
+            return Response(data=data_ticket, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
