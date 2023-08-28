@@ -22,10 +22,10 @@ class Transactions(models.Model):
 class Payment(models.Model):
     id = models.UUIDField(default=uuid.uuid4, editable=True, primary_key=True)
     status = models.PositiveIntegerField(editable=False)
-    transaction_id = models.ForeignKey(Transactions, on_delete=models.CASCADE)
+    transaction_id = models.OneToOneField(Transactions, on_delete=models.CASCADE)
     movie_id = models.ForeignKey(Movie, on_delete=models.SET_NULL, null=True)
     amount = models.CharField(max_length=10)
-    date_payment = models.DateTimeField(auto_now=True)
+    date_payment = models.DateTimeField()
 
     def __str__(self):
         return f'{self.amount}/{self.date_payment}/{self.status}'
