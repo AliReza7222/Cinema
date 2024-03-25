@@ -15,7 +15,7 @@
 > <p>Authentication is based on jwt token .</p>
 
 <h3>Payment Simulator IdPay</h3>
-<p>View TransactionsView is for buy ticket movie , after pay amount movie a ticket with key data create for client user .</p>
+View TransactionsView is for buy ticket movie , after pay amount movie a ticket with key data create for client user .
 <p>superuser can check data tickt movie with view DecodeDataTicket .</p>
 
 <h3>ShowAllMovie and </h3>
