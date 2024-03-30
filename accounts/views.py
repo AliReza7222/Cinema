@@ -9,12 +9,27 @@ from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView, GenericAPIView
 
 from .utils import get_toke, send_sms_token_login, create_password
+from TheCinema.response_msg import SUCESS_REGISTER
 from .models import UserSite
-from .serializrs import SignUpSerializer, SignInStepOneSerializer, SignInStepTwoSerializer, GetPhoneNumberSerializer
+from .serializrs import (
+    SignUpSerializer,
+    SignInStepOneSerializer,
+    SignInStepTwoSerializer,
+    GetPhoneNumberSerializer
+)
 
 
 class SignUpView(CreateAPIView):
     serializer_class = SignUpSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(
+            {'type': 'successfull', 'message': SUCESS_REGISTER, 'data': serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class SignInView(APIView):
@@ -140,5 +155,3 @@ class ChangePasswordView(APIView):
                                     status=status.HTTP_200_OK)
 
             return Response({'error': 'code is invalid !'}, status=status.HTTP_400_BAD_REQUEST)
-
-
