@@ -80,10 +80,10 @@ REST_FRAMEWORK = {
 
 # config Simple Jwt for authentication user
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(hours=10),
-    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=15),
-    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(hours=10),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=24),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=48),
+    "SLIDING_TOKEN_LIFETIME": timedelta(hours=24),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(hours=48),
     "SIGNING_KEY": SECRET_KEY,
     "ALGORITHM": "HS384",
 
@@ -109,18 +109,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'TheCinema.wsgi.application'
 
+
 # Config corsheaders
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000", # project Django
     "http://localhost:3000", # project React
 ]
 
-# config Csrf
+
+# Csrf origin
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000", # project React
 ]
+
+
+# Security
 CSRF_COOKIE_SAMESITE = "strict"
 CSRF_COOKIE_SECURE = True
+
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
