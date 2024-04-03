@@ -17,7 +17,7 @@ from pathlib import Path
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Take environment variables from .env file
 env = environ.Env()
@@ -27,8 +27,8 @@ env.read_env(os.path.join(BASE_DIR, '.env'))
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # APi Key KavehNegar and Phone Number
-APIKEY = env('APIKEY')
-PHONE_NUMBER = env('PHONE_NUMBER')
+# APIKEY = env('APIKEY')
+# PHONE_NUMBER = env('PHONE_NUMBER')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")
@@ -41,24 +41,27 @@ ALLOWED_HOSTS = []
 # Config Custom Model User
 AUTH_USER_MODEL = "accounts.UserSite"
 
-
 # Application definition
-
-INSTALLED_APPS = [
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+]
+THIRD_PARTY_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular'
+]
+LOCAL_APPS = [
     'accounts.apps.AccountsConfig',
     'movie.apps.MovieConfig',
     'payment.apps.PaymentConfig'
-
 ]
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -75,7 +78,8 @@ MIDDLEWARE = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # config Simple Jwt for authentication user
@@ -89,12 +93,21 @@ SIMPLE_JWT = {
 
 }
 
+# drf_spectacular settings
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Cinema API",
+    "DESCRIPTION": "Documentation of API endpoints of Cinema",
+    "VERSION": "1.0.0",
+    "SCHEMA_PATH_PREFIX": r'/api/v[0-9]',
+    # "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+}
+
 ROOT_URLCONF = 'TheCinema.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [str(BASE_DIR / 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -109,25 +122,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'TheCinema.wsgi.application'
 
-
-# Config corsheaders
-
+# config corsheaders
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000", # project Django
     "http://localhost:3000", # project React
 ]
 
 
-# Csrf origin
-
+# csrf origin
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000", # project React
 ]
 
-
-# Security
-CSRF_COOKIE_SAMESITE = "strict"
-CSRF_COOKIE_SECURE = True
+# security
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+X_FRAME_OPTIONS = "DENY"
 
 
 # Database
@@ -181,6 +191,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+# Media files
+
+MEDIA_ROOT = str(BASE_DIR / 'media')
+MEDIA_URL = "/media/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

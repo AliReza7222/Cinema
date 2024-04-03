@@ -2,6 +2,7 @@ from django.urls import path
 from .views import RecordRoomView, RecordMovieView, ShowAllMovie, ShowAllRoom, DecodeDataTicket
 
 
+app_name = 'movie'
 urlpatterns = [
     path('record_room/', RecordRoomView.as_view(), name='record_room'),
     path('record_movie/', RecordMovieView.as_view(), name='record_movie'),
