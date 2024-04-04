@@ -27,8 +27,8 @@ env.read_env(os.path.join(BASE_DIR, '.env'))
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # APi Key KavehNegar and Phone Number
-# APIKEY = env('APIKEY')
-# PHONE_NUMBER = env('PHONE_NUMBER')
+APIKEY = env('APIKEY')
+PHONE_NUMBER = env('PHONE_NUMBER')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")

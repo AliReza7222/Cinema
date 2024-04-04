@@ -1,1 +1,5 @@
-SUCESS_REGISTER = 'با موفقیت ثبت نام شدید .'
+SUCCESS_REGISTER = 'با موفقیت ثبت نام شدید .'
+SUCCESS_SEND_SMS = 'کد به شماره تلفن کاربر ارسال شد .'
+SEND_TOKEN_TO_USER = 'کد ورود شما به سایت {token} است .'
+ERROR_AUTHENTICATION_USER = 'کاربری با این اطلاعات وجود ندارد .'
+ERROR_SEND_SMS = 'در ارسال پیام مشکلی پیش امده است لطفا دوباره امتحان کنید !'
