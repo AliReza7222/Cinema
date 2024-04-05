@@ -106,6 +106,7 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Documentation of API endpoints of Cinema",
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": r'/api/v[0-9]',
+    'SERVE_INCLUDE_SCHEMA': False,
     # "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
 }
 
