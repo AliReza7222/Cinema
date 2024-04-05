@@ -26,7 +26,7 @@ class UserSiteManager(BaseUserManager):
 
 
 class UserSite(AbstractUser):
-    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+    user_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     username = None
     email = None
     phone_number = models.CharField(max_length=11, unique=True)

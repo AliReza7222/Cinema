@@ -2,14 +2,16 @@ from django.urls import path
 
 from .views import (
     SignUpView,
-    StepOneSignInView,
-    ChangePasswordView
+    CheckInformationUserView,
+    CheckTokenView,
+    # ChangePasswordView
 )
 
 
 app_name = 'accounts'
 urlpatterns = [
     path('signup/', SignUpView.as_view(), name='sign_up'),
-    path('signin/1/', StepOneSignInView.as_view(), name='step_one_signin'),
-    path('change_password/<str:step>/', ChangePasswordView.as_view(), name='change_password')
+    path('signin/check_info_user/', CheckInformationUserView.as_view(), name='check_info_user'),
+    path('signin/check_token/<uuid:user_uuid>/', CheckTokenView.as_view(), name='check_token'),
+    # path('change_password/<str:step>/', ChangePasswordView.as_view(), name='change_password')
 ]

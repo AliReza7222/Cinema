@@ -40,8 +40,8 @@ def send_sms_token_login(phone_number, message):
         # response = info.get('return')
         # return response.status
         # for dev
-        return 200
+        return 200  # sucess status
     except APIException:
-        return 408
+        return 408  # timeout status : error 408
     except HTTPException:
-        return 408
+        return 408  # timeout status : error 408
