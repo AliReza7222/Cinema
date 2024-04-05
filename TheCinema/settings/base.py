@@ -27,8 +27,8 @@ env.read_env(os.path.join(BASE_DIR, '.env'))
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # APi Key KavehNegar and Phone Number
-# APIKEY = env('APIKEY')
-# PHONE_NUMBER = env('PHONE_NUMBER')
+APIKEY = env('APIKEY')
+PHONE_NUMBER = env('PHONE_NUMBER')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")
@@ -74,6 +74,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env('REDIS_URL'),
+    }
+}
+
 # config Rest Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -99,6 +106,7 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Documentation of API endpoints of Cinema",
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": r'/api/v[0-9]',
+    'SERVE_INCLUDE_SCHEMA': False,
     # "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
 }
 
