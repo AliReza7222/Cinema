@@ -1,26 +1,23 @@
-from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 from django.contrib.auth.hashers import check_password, make_password
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import CreateAPIView, GenericAPIView
 from rest_framework.exceptions import PermissionDenied
 
+from . import utils
 from .models import UserSite
 from .permissions import CompleteCheckInfoUserPermission
 from TheCinema import response_msg as msg
-from .utils import (
-    get_toke,
-    send_sms_token_login,
-    create_password,
-    authentication_user)
 from .serializrs import (
     SignUpSerializer,
     CheckInformationUserSerializer,
     CheckTokenSerializer,
-    GetPhoneNumberSerializer
+    GetPhoneNumberSerializer,
+    ChangePasswordSerializer
 )
 
 
@@ -46,12 +43,12 @@ class CheckInformationUserView(GenericAPIView):
         if serializer.is_valid():
             phone_number = serializer.validated_data.get("phone_number")
             password = serializer.validated_data.get("password")
-            user = authentication_user(phone_number, password)
+            user = utils.authentication_user(phone_number, password)
             if user:
-                token = str(get_toke())
+                token = str(utils.get_toke())
                 print(token) # for devlope and test
                 message_token = msg.SEND_TOKEN_TO_USER.format(token=token)
-                response = send_sms_token_login(phone_number, message_token)
+                response = utils.send_sms_token_login(phone_number, message_token)
                 if response == status.HTTP_200_OK:
                     cache.set(user.password, token, timeout=70)
                     return Response(
@@ -71,6 +68,7 @@ class CheckInformationUserView(GenericAPIView):
 
 
 class CheckTokenView(GenericAPIView):
+    """ step two signin user: checks the token sent to your phone number  """
     permission_classes = (CompleteCheckInfoUserPermission, )
     serializer_class = CheckTokenSerializer
 
@@ -96,53 +94,52 @@ class CheckTokenView(GenericAPIView):
         raise PermissionDenied(message)
 
 
+class ChangePasswordView(GenericAPIView):
+    permission_classes = (IsAuthenticated, )
+    serializer_class = ChangePasswordSerializer
 
-# class ChangePasswordView(APIView):
-#
-#     def send_message_to_user(self, message, phone_number):
-#         send_sms_token_login(phone_number, message)
-#
-#     def post(self, request, *args, **kwargs):
-#         data = request.data
-#         step = kwargs.get('step')
-#
-#         if step == '1':
-#             serializer = GetPhoneNumberSerializer(data=data)
-#             if serializer.is_valid():
-#                 phone_number = serializer.validated_data.get('phone_number')
-#                 try:
-#                     user = UserSite.objects.get(phone_number=phone_number)
-#                     phone_number = user.phone_number
-#                     token = str(get_toke())
-#                     message = f'کد تایید شماره شما بعنوان یک کاربر این سایت {token}'
-#                     cache.set(phone_number, token, timeout=70)
-#                     self.send_message_to_user(message, phone_number)
-#                     # print message code for develop project
-#                     print(message, '------', token)
-#                     return Response({'message': 'code verification send to user .', 'step_one': 'ok',
-#                                      'step_continue': '2', 'phone_number': str(user.phone_number)}
-#                                     , status=status.HTTP_200_OK)
-#
-#                 except ObjectDoesNotExist:
-#                     return Response({'message': 'Phone Number Invalid !'}, status=status.HTTP_404_NOT_FOUND)
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-#
-#         elif step == '2':
-#             serializer = SignInStepTwoSerializer(data=data)
-#             if serializer.is_valid():
-#                 phone_number = request.GET.get('phone_number')
-#                 user = UserSite.objects.get(phone_number=phone_number)
-#                 code = serializer.validated_data.get('verification_code')
-#                 token = cache.get(phone_number)
-#                 if token and (token == code):
-#                     new_password = create_password()
-#                     user.set_password(new_password)
-#                     message = f"رمز عبور جدید شما {new_password} است  ."
-#                     self.send_message_to_user(message, phone_number)
-#                     user.save()
-#                     # print message for develop project
-#                     print(message)
-#                     return Response({'message': 'Successfully changed password , new password send your phone number '},
-#                                     status=status.HTTP_200_OK)
-#
-#             return Response({'error': 'code is invalid !'}, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            old_password = serializer.validated_data.get('old_password')
+            new_password = serializer.validated_data.get('new_password')
+            if not check_password(old_password, request.user.password):
+                return Response(
+                    {'message': msg.ERROR_OLD_PASSWORD_INVALID, 'type': 'error'},
+                    status=status.HTTP_404_NOT_FOUND)
+            request.user.set_password(new_password)
+            request.user.save()
+            return Response(
+                {'message': msg.SUCCESS_CHANGE_PASSWORD, 'type': 'sucess'}, status=status.HTTP_200_OK)
+        return Response({'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForgetPasswordView(GenericAPIView):
+    serializer_class = GetPhoneNumberSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            phone_number = serializer.validated_data.get("phone_number")
+            password = serializer.validated_data.get("password")
+            user = utils.authentication_user(phone_number, password)
+            if user:
+                new_password = utils.create_password()
+                print(new_password) # for devlope and test
+                response = utils.send_sms_token_login(phone_number, new_password)
+                if response == status.HTTP_200_OK:
+                    user.set_password(new_password)
+                    user.save()
+                    return Response(
+                        {
+                            'message': msg.SUCCESS_SEND_FORGET_PASSWORD,
+                            'type': 'success',
+                        },
+                        status=status.HTTP_200_OK)
+                elif response == status.HTTP_408_REQUEST_TIMEOUT:
+                    return Response(
+                        {'message': msg.ERROR_SEND_SMS, 'type': 'error'}, status=status.HTTP_408_REQUEST_TIMEOUT)
+            return Response(
+                {'message': msg.ERROR_AUTHENTICATION_USER, 'type': 'error'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST)

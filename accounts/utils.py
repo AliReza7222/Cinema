@@ -7,12 +7,13 @@ from kavenegar import *
 from .models import UserSite
 
 
-def authentication_user(phone_number: str, password: str):
+def authentication_user(phone_number: str, password: str = None):
     find_user = UserSite.objects.filter(phone_number=phone_number)
     if find_user.exists():
         user = find_user.first()
-        if check_password(password, user.password):
-            return user
+        if password and not check_password(password, user.password):
+            return None
+        return user
     return None
 
 
@@ -22,7 +23,7 @@ def get_toke() -> int:
 
 def create_password() -> str:
     words = list(ascii_uppercase + ascii_lowercase + digits)
-    password = ''.join(random.choices(words, k=6))
+    password = ''.join(random.choices(words, k=8))
     return password
 
 
