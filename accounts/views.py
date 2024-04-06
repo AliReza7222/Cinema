@@ -68,6 +68,7 @@ class CheckInformationUserView(GenericAPIView):
 
 
 class CheckTokenView(GenericAPIView):
+    """ step two signin user: checks the token sent to your phone number  """
     permission_classes = (CompleteCheckInfoUserPermission, )
     serializer_class = CheckTokenSerializer
 
@@ -111,3 +112,34 @@ class ChangePasswordView(GenericAPIView):
             return Response(
                 {'message': msg.SUCCESS_CHANGE_PASSWORD, 'type': 'sucess'}, status=status.HTTP_200_OK)
         return Response({'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForgetPasswordView(GenericAPIView):
+    serializer_class = GetPhoneNumberSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            phone_number = serializer.validated_data.get("phone_number")
+            password = serializer.validated_data.get("password")
+            user = utils.authentication_user(phone_number, password)
+            if user:
+                new_password = utils.create_password()
+                print(new_password) # for devlope and test
+                response = utils.send_sms_token_login(phone_number, new_password)
+                if response == status.HTTP_200_OK:
+                    user.set_password(new_password)
+                    user.save()
+                    return Response(
+                        {
+                            'message': msg.SUCCESS_SEND_FORGET_PASSWORD,
+                            'type': 'success',
+                        },
+                        status=status.HTTP_200_OK)
+                elif response == status.HTTP_408_REQUEST_TIMEOUT:
+                    return Response(
+                        {'message': msg.ERROR_SEND_SMS, 'type': 'error'}, status=status.HTTP_408_REQUEST_TIMEOUT)
+            return Response(
+                {'message': msg.ERROR_AUTHENTICATION_USER, 'type': 'error'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST)
