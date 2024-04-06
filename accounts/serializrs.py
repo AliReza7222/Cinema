@@ -34,7 +34,7 @@ class SignUpSerializer(serializers.ModelSerializer):
     def validate(self, data):
         password, confirm = data.get('password'), data.get('re_password')
         if password != confirm:
-            raise serializers.ValidationError({'password':msg.ERROR_INVALID_RE_PASSWORD})
+            raise serializers.ValidationError({'password': msg.ERROR_INVALID_RE_PASSWORD})
         return data
 
     def create(self, validated_data):
@@ -54,3 +54,21 @@ class CheckTokenSerializer(serializers.Serializer):
 
 class GetPhoneNumberSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    re_new_password = serializers.CharField(write_only=True)
+
+    def validate_new_password(self, value):
+            if len(value) < 6:
+                raise serializers.ValidationError(msg.ERROR_INVALID_PASSWORD)
+            return value
+
+    def validate(self, data):
+        new_password = data.get('new_password')
+        re_new_password = data.get('re_new_password')
+        if not new_password == re_new_password:
+            raise serializers.ValidationError({'new_password': msg.ERROR_INVALID_RE_PASSWORD})
+        return data

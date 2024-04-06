@@ -9,3 +9,5 @@ ERROR_PERMISSION_STEP_TWO_SIGNIN = 'شما مرحله اول ورود را با 
 ERROR_INVALID_PHONE_NUMBER = 'لطفا یک شماره تلفن معتبر وارد کنید !'
 ERROR_INVALID_PASSWORD = 'رمز عبور حداقل باید ۶ کاراکتر باشد !'
 ERROR_INVALID_RE_PASSWORD = 'رمز عبور و تکرار ان با هم برابر نیستند !'
+ERROR_OLD_PASSWORD_INVALID = 'شما پسورد قدیمی خود را به درستی وارد نکرده اید !'
+SUCCESS_CHANGE_PASSWORD = 'پسورد شما با موفقیت تغییر کرد .'
