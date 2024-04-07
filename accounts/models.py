@@ -39,3 +39,8 @@ class UserSite(AbstractUser):
 
     def __str__(self):
         return self.phone_number
+
+
+# class ProfileUser(models.Model):
+#     first_name = models.CharField(max_length=150, null=True)
+#     last_name = models.CharField(max_length=150, null=True)
