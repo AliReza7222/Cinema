@@ -168,3 +168,6 @@ image_movie/
 
 # files don't need
 dump.rdb
+
+# files media
+media/

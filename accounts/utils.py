@@ -1,11 +1,13 @@
 import random, uuid
-from string import ascii_uppercase, ascii_lowercase, digits
 from django.contrib.auth.hashers import check_password
 from django.conf import settings
 from django.core.cache import cache
+from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.tokens import RefreshToken
+from string import ascii_uppercase, ascii_lowercase, digits
 from kavenegar import *
 
-from .models import UserSite
+from .models import UserSite, ProfileUser
 
 
 def authentication_user(phone_number: str, password: str):
@@ -48,18 +50,16 @@ def send_sms_token_login(phone_number, message):
         return 408  # timeout status : error 408
 
 
-def get_key_permission(permission: str, user: UserSite):
-    if permission == 'signin':
-        key = user.password
-    elif permission == 'forget_password':
-        key = f"{user.password}_fpass"
-    return key
-
-
-def check_key_cache(permission: str, user_uuid: uuid.UUID):
-    user = UserSite.objects.filter(user_uuid=user_uuid)
-    if user.exists():
-        key = get_key_permission(permission=permission, user=user.first())
-        if cache.has_key(key):
-            return True
-    return False
+def login_user(phone_number: str=None, user: UserSite=None) -> dict:
+    if phone_number and not user:
+        user = get_object_or_404(UserSite, phone_number=phone_number)
+    data_profile = ProfileUser.objects.filter(user=user).values().first()
+    refresh = RefreshToken.for_user(user)
+    return {
+        'tokens': {
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh)
+        },
+        'user-uuid': user.user_uuid,
+        'profile-user': data_profile
+    }
