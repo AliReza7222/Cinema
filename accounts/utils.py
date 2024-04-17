@@ -1,19 +1,21 @@
 import random
-from string import ascii_uppercase, ascii_lowercase, digits
 from django.contrib.auth.hashers import check_password
 from django.conf import settings
-from kavenegar import *
+from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.tokens import RefreshToken
+from string import ascii_uppercase, ascii_lowercase, digits
+from kavenegar import KavenegarAPI, APIException, HTTPException
 
-from .models import UserSite
+from .models import UserSite, ProfileUser
+from TheCinema import response_msg as msg
 
 
-def authentication_user(phone_number: str, password: str = None):
+def authentication_user(phone_number: str, password: str):
     find_user = UserSite.objects.filter(phone_number=phone_number)
     if find_user.exists():
         user = find_user.first()
-        if password and not check_password(password, user.password):
-            return None
-        return user
+        if check_password(password, user.password):
+            return user
     return None
 
 
@@ -23,11 +25,11 @@ def get_toke() -> int:
 
 def create_password() -> str:
     words = list(ascii_uppercase + ascii_lowercase + digits)
-    password = ''.join(random.choices(words, k=8))
+    password = ''.join(random.choices(words, k=16))
     return password
 
 
-def send_sms_token_login(phone_number, message):
+def send_sms_token(phone_number, message):
     try:
         api = KavenegarAPI(settings.APIKEY)
         params = {
@@ -46,3 +48,35 @@ def send_sms_token_login(phone_number, message):
         return 408  # timeout status : error 408
     except HTTPException:
         return 408  # timeout status : error 408
+
+
+def login_user(phone_number: str = None, user: UserSite = None) -> dict:
+    if phone_number and not user:
+        user = get_object_or_404(UserSite, phone_number=phone_number)
+    data_profile = ProfileUser.objects.filter(user=user).values().first()
+    refresh = RefreshToken.for_user(user)
+    return {
+        'tokens': {
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh)
+        },
+        'user-uuid': user.user_uuid,
+        'profile-user': data_profile
+    }
+
+
+def invalid_operation(op):
+    operations = ('register', 'login', 'forget_password')
+    if op not in operations:
+        return {'message': msg.ERROR_INVALID_URL, 'type': 'error'}
+    return None
+
+
+def check_operation_view(op, phone_number):
+    find_number = UserSite.objects.filter(phone_number=phone_number)
+    if op == 'register' and find_number.exists():
+        return {'message': msg.ERROR_DUPLICATE_PHONE_NUMBER, 'type': 'error'}
+    elif op in ('login', 'forget_password') and not find_number.exists():
+        return {'message': msg.ERROR_NOT_EXISTS_PHONE_NUMBER, 'type': 'error'}
+    else:
+        return None

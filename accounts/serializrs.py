@@ -1,51 +1,30 @@
 import re
 
 from rest_framework import serializers
-from django.contrib.auth.hashers import make_password
 
-from .models import UserSite
+from .models import ProfileUser
 from TheCinema import response_msg as msg
 
 
-class SignUpSerializer(serializers.ModelSerializer):
-
-    re_password = serializers.CharField(write_only=True)
+class BaseSetPasswordUserSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = UserSite
-        fields = [
-            'phone_number',
-            'password',
-            're_password'
-        ]
-
-    def validate_phone_number(self, value):
-        check_phone_number = re.findall('^09[0-9]{9}$', value) or None
-        if check_phone_number is None:
-            raise serializers.ValidationError(msg.ERROR_INVALID_PHONE_NUMBER)
-        return value
+    re_password = serializers.CharField(write_only=True)
 
     def validate_password(self, value):
-            if len(value) < 6:
-                raise serializers.ValidationError(msg.ERROR_INVALID_PASSWORD)
-            return value
+        if len(value) < 8:
+            raise serializers.ValidationError(msg.ERROR_INVALID_PASSWORD)
+        return value
 
     def validate(self, data):
-        password, confirm = data.get('password'), data.get('re_password')
-        if password != confirm:
+        password = data.get('password')
+        re_password = data.get('re_password')
+        if not password == re_password:
             raise serializers.ValidationError({'password': msg.ERROR_INVALID_RE_PASSWORD})
         return data
 
-    def create(self, validated_data):
-        del validated_data['re_password']
-        validated_data['password'] = make_password(validated_data['password'])
-        return super().create(validated_data)
 
-
-class CheckInformationUserSerializer(serializers.Serializer):
-    phone_number = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+class AuthenticationCompleteSerializer(BaseSetPasswordUserSerializer):
+    pass
 
 
 class CheckTokenSerializer(serializers.Serializer):
@@ -55,20 +34,33 @@ class CheckTokenSerializer(serializers.Serializer):
 class GetPhoneNumberSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
 
+    def validate_phone_number(self, value):
+        check_phone_number = re.findall('^09[0-9]{9}$', value) or None
+        if check_phone_number is None:
+            raise serializers.ValidationError(msg.ERROR_INVALID_PHONE_NUMBER)
+        return value
 
-class ChangePasswordSerializer(serializers.Serializer):
+
+class ChangePasswordSerializer(BaseSetPasswordUserSerializer):
     old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True)
-    re_new_password = serializers.CharField(write_only=True)
 
-    def validate_new_password(self, value):
-            if len(value) < 6:
-                raise serializers.ValidationError(msg.ERROR_INVALID_PASSWORD)
-            return value
 
-    def validate(self, data):
-        new_password = data.get('new_password')
-        re_new_password = data.get('re_new_password')
-        if not new_password == re_new_password:
-            raise serializers.ValidationError({'new_password': msg.ERROR_INVALID_RE_PASSWORD})
-        return data
+class CompleteProfileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProfileUser
+        fields = [
+            'first_name',
+            'last_name',
+            'photo'
+        ]
+
+    def validate_photo(self, photo):
+        limit = 2 * 1024 * 1024
+        if photo.size > limit:
+            raise serializers.ValidationError(msg.ERROR_LIMIT_SIZE_PHOTO)
+        return photo
+
+
+class LoginWithPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)

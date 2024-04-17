@@ -1,97 +1,142 @@
-from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 from django.contrib.auth.hashers import check_password, make_password
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.generics import CreateAPIView, GenericAPIView
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import GenericAPIView
+from rest_framework.exceptions import PermissionDenied, NotAuthenticated
 
-from . import utils
+from . import utils, permissions
 from .models import UserSite
-from .permissions import CompleteCheckInfoUserPermission
 from TheCinema import response_msg as msg
 from .serializrs import (
-    SignUpSerializer,
-    CheckInformationUserSerializer,
+    AuthenticationCompleteSerializer,
     CheckTokenSerializer,
     GetPhoneNumberSerializer,
-    ChangePasswordSerializer
+    ChangePasswordSerializer,
+    CompleteProfileSerializer,
+    LoginWithPasswordSerializer
 )
 
 
-class SignUpView(CreateAPIView):
-    serializer_class = SignUpSerializer
+class GetPhoneNumberView(GenericAPIView):
+    """
+        step one : check phone number for register or login or forget password
+        so send token to your phone number .
+    """
+    serializer_class = GetPhoneNumberSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(
-            {'type': 'success', 'message': msg.SUCCESS_REGISTER, 'data': serializer.data},
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class CheckInformationUserView(GenericAPIView):
-    """ step one signin user: check phone number and password valid. """
-    serializer_class = CheckInformationUserSerializer
+    def response_send_token(self, phone_number):
+        token = str(utils.get_toke())
+        message_token = msg.SEND_TOKEN_TO_USER.format(token=token)
+        response = utils.send_sms_token(phone_number, message_token)
+        if response == status.HTTP_200_OK:
+            cache.set(phone_number, token, timeout=70)
+            cache.set('permission_step_two', True, timeout=120)
+            return Response(
+                {
+                    'message': msg.SUCCESS_SEND_SMS, 'type': 'success', 'data': {'phone_number': phone_number},
+                    'token': f"We are developing the project, so our token is {token}"
+                },
+                status=status.HTTP_200_OK)
+        elif response == status.HTTP_408_REQUEST_TIMEOUT:
+            return Response(
+                {'message': msg.ERROR_SEND_SMS, 'type': 'error'},
+                status=status.HTTP_408_REQUEST_TIMEOUT)
 
     def post(self, request, *args, **kwargs):
+        operation = kwargs.get('op')
+        if response_check_operation := utils.invalid_operation(op=operation):
+            return Response(response_check_operation, status=status.HTTP_404_NOT_FOUND)
+
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            phone_number = serializer.validated_data.get("phone_number")
-            password = serializer.validated_data.get("password")
-            user = utils.authentication_user(phone_number, password)
-            if user:
-                token = str(utils.get_toke())
-                print(token) # for devlope and test
-                message_token = msg.SEND_TOKEN_TO_USER.format(token=token)
-                response = utils.send_sms_token_login(phone_number, message_token)
-                if response == status.HTTP_200_OK:
-                    cache.set(user.password, token, timeout=70)
-                    return Response(
-                        {
-                            'message': msg.SUCCESS_SEND_SMS,
-                            'type': 'success',
-                            'data': {'user': str(user.user_uuid)}
-                        },
-                        status=status.HTTP_200_OK)
-                elif response == status.HTTP_408_REQUEST_TIMEOUT:
-                    return Response(
-                        {'message': msg.ERROR_SEND_SMS, 'type': 'error'}, status=status.HTTP_408_REQUEST_TIMEOUT)
-            return Response(
-                {'message': msg.ERROR_AUTHENTICATION_USER, 'type': 'error'}, status=status.HTTP_404_NOT_FOUND)
+            phone_number = serializer.validated_data.get('phone_number')
+            if response_check_op := utils.check_operation_view(operation, phone_number):
+                return Response(response_check_op, status=status.HTTP_404_NOT_FOUND)
+            return self.response_send_token(phone_number)
         return Response(
-            {'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+            {'message': serializer.errors, 'type': 'error'},
+            status=status.HTTP_400_BAD_REQUEST)
 
 
 class CheckTokenView(GenericAPIView):
-    """ step two signin user: checks the token sent to your phone number  """
-    permission_classes = (CompleteCheckInfoUserPermission, )
+    """ step two : check token so doing login or register or forget password  """
+    permission_classes = (permissions.CheckStepForm, permissions.CheckExistsToken)
     serializer_class = CheckTokenSerializer
+
+    def permission_denied(self, request, message=None, code=None):
+        raise PermissionDenied(message)
+
+    def response_login_user(self, phone_number):
+        return Response(
+            {'message': msg.SUCESS_LOGIN, 'type': 'success',
+             'data': utils.login_user(phone_number=phone_number)},
+            status=status.HTTP_200_OK)
+
+    def response_register_user(self, phone_number):
+        UserSite.objects.create(phone_number=phone_number)
+        return Response(
+            {'message': msg.SUCCESS_REGISTER, 'type': 'success'},
+            status=status.HTTP_200_OK
+        )
+
+    def response_forget_password(self, phone_number):
+        new_password = utils.create_password()
+        user = get_object_or_404(UserSite, phone_number=phone_number)
+        user.set_password(new_password)
+        user.save()
+        return Response(
+            {'message': msg.SUCESS_SET_FORGET_PASSWORD.format(new_password=new_password), 'type': 'success'},
+            status=status.HTTP_200_OK
+        )
+
+    def post(self, request, *args, **kwargs):
+        operation, phone_number = kwargs.get('op'), kwargs.get('phone_number')
+        if response_check_operation := utils.invalid_operation(op=operation):
+            return Response(response_check_operation, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            token = serializer.validated_data.get('token')
+            if token == cache.get(kwargs.get('phone_number')):
+                if response_check_op := utils.check_operation_view(operation, phone_number):
+                    return Response(response_check_op, status=status.HTTP_404_NOT_FOUND)
+                elif operation == 'login':
+                    return self.response_login_user(phone_number=phone_number)
+                elif operation == 'register':
+                    return self.response_register_user(phone_number=phone_number)
+                elif operation == 'forget_password':
+                    return self.response_forget_password(phone_number=phone_number)
+            return Response(
+                {'message': msg.ERROR_INVALID_TOKEN_LOGIN, 'type': 'error'},
+                status.HTTP_404_NOT_FOUND)
+        return Response(
+            {'message': serializer.errors, 'type': 'error'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class CompleteAuthentication(GenericAPIView):
+    permission_classes = (IsAuthenticated, permissions.CheckPassword)
+    serializer_class = AuthenticationCompleteSerializer
+
+    def permission_denied(self, request, message=None, code=None):
+        if request.authenticators and not request.successful_authenticator:
+            raise NotAuthenticated()
+        raise PermissionDenied(detail=message, code=code)
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            user = get_object_or_404(UserSite, user_uuid=kwargs.get('user_uuid'))
-            token = serializer.validated_data.get('token')
-            if token == cache.get(user.password):
-                refresh = RefreshToken.for_user(user)
-                return Response(
-                    {'tokens': {'refresh': str(refresh),'access': str(refresh.access_token)},
-                    'message': msg.SUCESS_SIGNIN,
-                    'type': 'success'},
-                    status=status.HTTP_200_OK
-                )
-            return Response({'message': msg.INVALID_TOKEN_LOGIN, 'type': 'error'}, status.HTTP_404_NOT_FOUND)
+            request.user.set_password(serializer.validated_data.get('password'))
+            request.user.save()
+            return Response(
+                {'message': msg.SUCESS_SET_PASSWORD, 'type': 'success'},
+                status=status.HTTP_200_OK)
         return Response(
-            {'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST
-        )
-
-    def permission_denied(self, request, message=None, code=None):
-        raise PermissionDenied(message)
+            {'message': serializer.errors, 'type': 'error'},
+            status=status.HTTP_400_BAD_REQUEST)
 
 
 class ChangePasswordView(GenericAPIView):
@@ -102,44 +147,53 @@ class ChangePasswordView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             old_password = serializer.validated_data.get('old_password')
-            new_password = serializer.validated_data.get('new_password')
-            if not check_password(old_password, request.user.password):
+            new_password = serializer.validated_data.get('password')
+            user = request.user
+            if not check_password(old_password, user.password):
                 return Response(
                     {'message': msg.ERROR_OLD_PASSWORD_INVALID, 'type': 'error'},
                     status=status.HTTP_404_NOT_FOUND)
-            request.user.set_password(new_password)
-            request.user.save()
+            user.set_password(new_password)
+            user.save()
             return Response(
-                {'message': msg.SUCCESS_CHANGE_PASSWORD, 'type': 'sucess'}, status=status.HTTP_200_OK)
+                {'message': msg.SUCCESS_CHANGE_PASSWORD, 'type': 'success'}, status=status.HTTP_200_OK)
         return Response({'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ForgetPasswordView(GenericAPIView):
-    serializer_class = GetPhoneNumberSerializer
+class CompleteProfileView(GenericAPIView):
+    permission_classes = (IsAuthenticated, )
+    serializer_class = CompleteProfileSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(request.user.profileuser, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {'message': msg.SUCESS_COMPLETE_PROFILE, 'type': 'sucess', 'data': serializer.data},
+                status=status.HTTP_200_OK)
+        return Response(
+            {'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class LoginWithPasswordView(GenericAPIView):
+    serializer_class = LoginWithPasswordSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            phone_number = serializer.validated_data.get("phone_number")
-            password = serializer.validated_data.get("password")
+            phone_number = kwargs.get('phone_number')
+            password = serializer.validated_data.get('password')
+            print(phone_number, password)
             user = utils.authentication_user(phone_number, password)
+            print(user)
             if user:
-                new_password = utils.create_password()
-                print(new_password) # for devlope and test
-                response = utils.send_sms_token_login(phone_number, new_password)
-                if response == status.HTTP_200_OK:
-                    user.set_password(new_password)
-                    user.save()
-                    return Response(
-                        {
-                            'message': msg.SUCCESS_SEND_FORGET_PASSWORD,
-                            'type': 'success',
-                        },
-                        status=status.HTTP_200_OK)
-                elif response == status.HTTP_408_REQUEST_TIMEOUT:
-                    return Response(
-                        {'message': msg.ERROR_SEND_SMS, 'type': 'error'}, status=status.HTTP_408_REQUEST_TIMEOUT)
+                return Response(
+                    {'message': msg.SUCESS_LOGIN, 'type': 'success', 'data': utils.login_user(user=user)},
+                    status=status.HTTP_200_OK)
             return Response(
-                {'message': msg.ERROR_AUTHENTICATION_USER, 'type': 'error'}, status=status.HTTP_404_NOT_FOUND)
+                {'message': msg.ERROR_LOGIN_USER, 'type': 'error'},
+                status=status.HTTP_404_NOT_FOUND)
         return Response(
-            {'message': serializer.errors, 'type': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+            {'message': serializer.errors, 'type': 'error'},
+            status=status.HTTP_400_BAD_REQUEST)
