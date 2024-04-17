@@ -6,7 +6,7 @@ from .views import (
     GetPhoneNumberView,
     CompleteAuthentication,
     CompleteProfileView,
-    LoginWithPassword
+    LoginWithPasswordView
 )
 
 
@@ -17,5 +17,5 @@ urlpatterns = [
     path('set_password/', CompleteAuthentication.as_view(), name='set_password'),
     path('complete_profile/', CompleteProfileView.as_view(), name='complete_profile'),
     path('change_password/', ChangePasswordView.as_view(), name='change_password'),
-    path('auth/login/password/<str:phone_number>/', LoginWithPassword.as_view(), name='login_with_password'),
+    path('auth/login/password/<str:phone_number>/', LoginWithPasswordView.as_view(), name='login_with_password'),
 ]

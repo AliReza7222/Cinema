@@ -1,9 +1,8 @@
 import re
 
 from rest_framework import serializers
-from django.contrib.auth.hashers import make_password
 
-from .models import UserSite, ProfileUser
+from .models import ProfileUser
 from TheCinema import response_msg as msg
 
 
@@ -12,9 +11,9 @@ class BaseSetPasswordUserSerializer(serializers.Serializer):
     re_password = serializers.CharField(write_only=True)
 
     def validate_password(self, value):
-            if len(value) < 8:
-                raise serializers.ValidationError(msg.ERROR_INVALID_PASSWORD)
-            return value
+        if len(value) < 8:
+            raise serializers.ValidationError(msg.ERROR_INVALID_PASSWORD)
+        return value
 
     def validate(self, data):
         password = data.get('password')
@@ -56,6 +55,12 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             'photo'
         ]
 
+    def validate_photo(self, photo):
+        limit = 2 * 1024 * 1024
+        if photo.size > limit:
+            raise serializers.ValidationError(msg.ERROR_LIMIT_SIZE_PHOTO)
+        return photo
 
-class LoginWithPassword(serializers.Serializer):
+
+class LoginWithPasswordSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)

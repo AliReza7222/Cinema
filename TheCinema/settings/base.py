@@ -103,7 +103,8 @@ SIMPLE_JWT = {
 # drf_spectacular settings
 SPECTACULAR_SETTINGS = {
     "TITLE": "Cinema API",
-    "DESCRIPTION": "Documentation of API endpoints of Cinema",
+    "DESCRIPTION": """Documentation of API endpoints of Cinema,
+        To login the user, after getting the access token, enter it in Authorize .""",
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": r'/api/v[0-9]',
     'SERVE_INCLUDE_SCHEMA': False,
@@ -164,6 +165,17 @@ DATABASES = {
 }
 
 
+# Password hash
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -199,11 +211,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
 # Media files
 
-MEDIA_ROOT = str(BASE_DIR / 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = "/media/"
 
 # Default primary key field type

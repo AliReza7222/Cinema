@@ -5,6 +5,6 @@ from .models import UserSite, ProfileUser
 
 
 @receiver(post_save, sender=UserSite)
-def CreateProfileUserSignal(sender, instance, created, **kwargs):
+def create_profile_user(sender, instance, created, **kwargs):
     if created:
         ProfileUser.objects.create(user=instance)

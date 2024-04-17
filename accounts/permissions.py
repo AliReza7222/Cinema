@@ -7,13 +7,22 @@ from .models import UserSite
 from TheCinema import response_msg as msg
 
 
-class CheckExistsToken(BasePermission):
-    message = msg.ERROR_EXISTS_TOKEN
+class CheckStepForm(BasePermission):
+    message = msg.ERROR_EXISTS_TOKEN_OR_STEP_FORM
 
     def has_permission(self, request, view):
-        if not cache.has_key(view.kwargs.get('phone_number')):
-            return False
-        return True
+        permission_next_step = cache.get('permission_step_two')
+        if permission_next_step:
+            print(permission_next_step, type(permission_next_step))
+            return True
+        return False
+
+
+class CheckExistsToken(BasePermission):
+    message = msg.ERROR_EXISTS_TOKEN_OR_STEP_FORM
+
+    def has_permission(self, request, view):
+        return cache.has_key(view.kwargs.get('phone_number'))
 
 
 class CheckPassword(BasePermission):
