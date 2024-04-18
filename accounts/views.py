@@ -33,7 +33,6 @@ class GetPhoneNumberView(GenericAPIView):
         response = utils.send_sms_token(phone_number, message_token)
         if response == status.HTTP_200_OK:
             cache.set(phone_number, token, timeout=70)
-            cache.set('permission_step_two', True, timeout=120)
             return Response(
                 {
                     'message': msg.SUCCESS_SEND_SMS, 'type': 'success', 'data': {'phone_number': phone_number},
@@ -55,6 +54,7 @@ class GetPhoneNumberView(GenericAPIView):
             phone_number = serializer.validated_data.get('phone_number')
             if response_check_op := utils.check_operation_view(operation, phone_number):
                 return Response(response_check_op, status=status.HTTP_404_NOT_FOUND)
+            cache.set('permission_step_two', operation, timeout=70)
             return self.response_send_token(phone_number)
         return Response(
             {'message': serializer.errors, 'type': 'error'},
@@ -100,13 +100,16 @@ class CheckTokenView(GenericAPIView):
         if serializer.is_valid():
             token = serializer.validated_data.get('token')
             if token == cache.get(kwargs.get('phone_number')):
-                if response_check_op := utils.check_operation_view(operation, phone_number):
-                    return Response(response_check_op, status=status.HTTP_404_NOT_FOUND)
-                elif operation == 'login':
+                permission_step_two = cache.get('permission_step_two')
+                if operation != permission_step_two:
+                    return Response(
+                        {'message': msg.ERROR_INVALID_URL, 'type': 'error'},
+                        status=status.HTTP_404_NOT_FOUND)
+                elif permission_step_two == 'login':
                     return self.response_login_user(phone_number=phone_number)
-                elif operation == 'register':
+                elif permission_step_two == 'register':
                     return self.response_register_user(phone_number=phone_number)
-                elif operation == 'forget_password':
+                elif permission_step_two == 'forget_password':
                     return self.response_forget_password(phone_number=phone_number)
             return Response(
                 {'message': msg.ERROR_INVALID_TOKEN_LOGIN, 'type': 'error'},
@@ -184,9 +187,7 @@ class LoginWithPasswordView(GenericAPIView):
         if serializer.is_valid():
             phone_number = kwargs.get('phone_number')
             password = serializer.validated_data.get('password')
-            print(phone_number, password)
             user = utils.authentication_user(phone_number, password)
-            print(user)
             if user:
                 return Response(
                     {'message': msg.SUCESS_LOGIN, 'type': 'success', 'data': utils.login_user(user=user)},
