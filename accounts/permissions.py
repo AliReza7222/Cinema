@@ -13,7 +13,6 @@ class CheckStepForm(BasePermission):
     def has_permission(self, request, view):
         permission_next_step = cache.get('permission_step_two')
         if permission_next_step:
-            print(permission_next_step, type(permission_next_step))
             return True
         return False
 
