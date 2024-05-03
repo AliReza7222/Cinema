@@ -36,6 +36,6 @@ def login_user(phone_number: str = None, user: UserSite = None) -> dict:
             'access_token': str(refresh.access_token),
             'refresh_token': str(refresh)
         },
-        'user-uuid': user.user_uuid,
-        'profile-user': data_profile
+        'userـuuid': user.user_uuid,
+        'profileـuser': data_profile
     }
