@@ -63,4 +63,11 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
 
 
 class LoginWithPasswordSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+    def validate_phone_number(self, value):
+        check_phone_number = re.findall('^09[0-9]{9}$', value) or None
+        if check_phone_number is None:
+            raise serializers.ValidationError(msg.ERROR_INVALID_PHONE_NUMBER)
+        return value

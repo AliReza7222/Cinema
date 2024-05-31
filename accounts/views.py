@@ -181,7 +181,7 @@ class LoginWithPasswordView(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            phone_number = kwargs.get('phone_number')
+            phone_number = serializer.validated_data.get('phone_number')
             password = serializer.validated_data.get('password')
             user = auth_user.authentication_user(phone_number, password)
             if user:
