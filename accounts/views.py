@@ -9,7 +9,7 @@ from rest_framework.exceptions import PermissionDenied, NotAuthenticated
 
 from TheCinema import response_msg as msg
 from utils import auth_user, send_token, valid_operation_url
-from . import permissions, serializrs
+from . import permissions, serializers
 from .models import UserSite
 
 
@@ -18,7 +18,7 @@ class GetPhoneNumberView(GenericAPIView):
         step one : check phone number for register or login or forget password
         so send token to your phone number .
     """
-    serializer_class = serializrs.GetPhoneNumberSerializer
+    serializer_class = serializers.GetPhoneNumberSerializer
 
     def response_send_token(self, phone_number):
         token = str(auth_user.get_toke())
@@ -58,7 +58,7 @@ class GetPhoneNumberView(GenericAPIView):
 class CheckTokenView(GenericAPIView):
     """ step two : check token so doing login or register or forget password  """
     permission_classes = (permissions.CheckStepForm, permissions.CheckExistsToken)
-    serializer_class = serializrs.CheckTokenSerializer
+    serializer_class = serializers.CheckTokenSerializer
 
     def permission_denied(self, request, message=None, code=None):
         raise PermissionDenied(message)
@@ -117,7 +117,7 @@ class CheckTokenView(GenericAPIView):
 class CompleteAuthentication(GenericAPIView):
     """ now complete authentication is just set password for user ."""
     permission_classes = (IsAuthenticated, permissions.CheckPassword)
-    serializer_class = serializrs.AuthenticationCompleteSerializer
+    serializer_class = serializers.AuthenticationCompleteSerializer
 
     def permission_denied(self, request, message=None, code=None):
         if request.authenticators and not request.successful_authenticator:
@@ -140,7 +140,7 @@ class CompleteAuthentication(GenericAPIView):
 
 class ChangePasswordView(GenericAPIView):
     permission_classes = (IsAuthenticated, )
-    serializer_class = serializrs.ChangePasswordSerializer
+    serializer_class = serializers.ChangePasswordSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -161,7 +161,7 @@ class ChangePasswordView(GenericAPIView):
 
 class CompleteProfileView(GenericAPIView):
     permission_classes = (IsAuthenticated, )
-    serializer_class = serializrs.CompleteProfileSerializer
+    serializer_class = serializers.CompleteProfileSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(request.user.profileuser, data=request.data)
@@ -176,7 +176,7 @@ class CompleteProfileView(GenericAPIView):
 
 
 class LoginWithPasswordView(GenericAPIView):
-    serializer_class = serializrs.LoginWithPasswordSerializer
+    serializer_class = serializers.LoginWithPasswordSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
