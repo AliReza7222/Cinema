@@ -7,17 +7,10 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.exceptions import PermissionDenied, NotAuthenticated
 
-from . import utils, permissions
-from .models import UserSite
 from TheCinema import response_msg as msg
-from .serializrs import (
-    AuthenticationCompleteSerializer,
-    CheckTokenSerializer,
-    GetPhoneNumberSerializer,
-    ChangePasswordSerializer,
-    CompleteProfileSerializer,
-    LoginWithPasswordSerializer
-)
+from utils import auth_user, send_token, valid_operation_url
+from . import permissions, serializers
+from .models import UserSite
 
 
 class GetPhoneNumberView(GenericAPIView):
@@ -25,14 +18,14 @@ class GetPhoneNumberView(GenericAPIView):
         step one : check phone number for register or login or forget password
         so send token to your phone number .
     """
-    serializer_class = GetPhoneNumberSerializer
+    serializer_class = serializers.GetPhoneNumberSerializer
 
     def response_send_token(self, phone_number):
-        token = str(utils.get_toke())
+        token = str(auth_user.get_toke())
         message_token = msg.SEND_TOKEN_TO_USER.format(token=token)
-        response = utils.send_sms_token(phone_number, message_token)
+        response = send_token.send_sms_token(phone_number, message_token)
         if response == status.HTTP_200_OK:
-            cache.set(phone_number, token, timeout=70)
+            cache.set(phone_number, token, timeout=70)  # set token with key phone number in cache
             return Response(
                 {
                     'message': msg.SUCCESS_SEND_SMS, 'type': 'success', 'data': {'phone_number': phone_number},
@@ -46,16 +39,17 @@ class GetPhoneNumberView(GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         operation = kwargs.get('op')
-        if response_check_operation := utils.invalid_operation(op=operation):
+        if response_check_operation := valid_operation_url.invalid_operation(op=operation):
             return Response(response_check_operation, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             phone_number = serializer.validated_data.get('phone_number')
-            if response_check_op := utils.check_operation_view(operation, phone_number):
+            # check operatin in (forget_password, register, login)
+            if response_check_op := valid_operation_url.check_operation_view(operation, phone_number):
                 return Response(response_check_op, status=status.HTTP_404_NOT_FOUND)
-            cache.set('permission_step_two', operation, timeout=70)
-            return self.response_send_token(phone_number)
+            cache.set('permission_step_two', operation, timeout=70)  # set operation with key permission_step_two in cache
+            return self.response_send_token(phone_number)  # response send my token to user's phone number
         return Response(
             {'message': serializer.errors, 'type': 'error'},
             status=status.HTTP_400_BAD_REQUEST)
@@ -64,7 +58,7 @@ class GetPhoneNumberView(GenericAPIView):
 class CheckTokenView(GenericAPIView):
     """ step two : check token so doing login or register or forget password  """
     permission_classes = (permissions.CheckStepForm, permissions.CheckExistsToken)
-    serializer_class = CheckTokenSerializer
+    serializer_class = serializers.CheckTokenSerializer
 
     def permission_denied(self, request, message=None, code=None):
         raise PermissionDenied(message)
@@ -72,7 +66,7 @@ class CheckTokenView(GenericAPIView):
     def response_login_user(self, phone_number):
         return Response(
             {'message': msg.SUCESS_LOGIN, 'type': 'success',
-             'data': utils.login_user(phone_number=phone_number)},
+             'data': auth_user.login_user(phone_number=phone_number)},
             status=status.HTTP_200_OK)
 
     def response_register_user(self, phone_number):
@@ -83,7 +77,7 @@ class CheckTokenView(GenericAPIView):
         )
 
     def response_forget_password(self, phone_number):
-        new_password = utils.create_password()
+        new_password = auth_user.create_password()
         user = get_object_or_404(UserSite, phone_number=phone_number)
         user.set_password(new_password)
         user.save()
@@ -94,14 +88,14 @@ class CheckTokenView(GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         operation, phone_number = kwargs.get('op'), kwargs.get('phone_number')
-        if response_check_operation := utils.invalid_operation(op=operation):
+        if response_check_operation := valid_operation_url.invalid_operation(op=operation):
             return Response(response_check_operation, status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             token = serializer.validated_data.get('token')
             if token == cache.get(kwargs.get('phone_number')):
                 permission_step_two = cache.get('permission_step_two')
-                if operation != permission_step_two:
+                if operation != permission_step_two:  # check same operation and permission_step_two in cache
                     return Response(
                         {'message': msg.ERROR_INVALID_URL, 'type': 'error'},
                         status=status.HTTP_404_NOT_FOUND)
@@ -121,8 +115,9 @@ class CheckTokenView(GenericAPIView):
 
 
 class CompleteAuthentication(GenericAPIView):
+    """ now complete authentication is just set password for user ."""
     permission_classes = (IsAuthenticated, permissions.CheckPassword)
-    serializer_class = AuthenticationCompleteSerializer
+    serializer_class = serializers.AuthenticationCompleteSerializer
 
     def permission_denied(self, request, message=None, code=None):
         if request.authenticators and not request.successful_authenticator:
@@ -132,8 +127,9 @@ class CompleteAuthentication(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            request.user.set_password(serializer.validated_data.get('password'))
-            request.user.save()
+            user = request.user
+            user.set_password(serializer.validated_data.get('password'))
+            user.save()
             return Response(
                 {'message': msg.SUCESS_SET_PASSWORD, 'type': 'success'},
                 status=status.HTTP_200_OK)
@@ -144,7 +140,7 @@ class CompleteAuthentication(GenericAPIView):
 
 class ChangePasswordView(GenericAPIView):
     permission_classes = (IsAuthenticated, )
-    serializer_class = ChangePasswordSerializer
+    serializer_class = serializers.ChangePasswordSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -165,7 +161,7 @@ class ChangePasswordView(GenericAPIView):
 
 class CompleteProfileView(GenericAPIView):
     permission_classes = (IsAuthenticated, )
-    serializer_class = CompleteProfileSerializer
+    serializer_class = serializers.CompleteProfileSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(request.user.profileuser, data=request.data)
@@ -180,17 +176,17 @@ class CompleteProfileView(GenericAPIView):
 
 
 class LoginWithPasswordView(GenericAPIView):
-    serializer_class = LoginWithPasswordSerializer
+    serializer_class = serializers.LoginWithPasswordSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             phone_number = kwargs.get('phone_number')
             password = serializer.validated_data.get('password')
-            user = utils.authentication_user(phone_number, password)
+            user = auth_user.authentication_user(phone_number, password)
             if user:
                 return Response(
-                    {'message': msg.SUCESS_LOGIN, 'type': 'success', 'data': utils.login_user(user=user)},
+                    {'message': msg.SUCESS_LOGIN, 'type': 'success', 'data': auth_user.login_user(user=user)},
                     status=status.HTTP_200_OK)
             return Response(
                 {'message': msg.ERROR_LOGIN_USER, 'type': 'error'},
