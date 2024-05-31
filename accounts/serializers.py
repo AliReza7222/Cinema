@@ -23,6 +23,16 @@ class BaseSetPasswordUserSerializer(serializers.Serializer):
         return data
 
 
+class BaseGetPhoneNumberUserSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()
+
+    def validate_phone_number(self, value):
+        check_phone_number = re.findall('^09[0-9]{9}$', value) or None
+        if check_phone_number is None:
+            raise serializers.ValidationError(msg.ERROR_INVALID_PHONE_NUMBER)
+        return value
+
+
 class AuthenticationCompleteSerializer(BaseSetPasswordUserSerializer):
     pass
 
@@ -31,14 +41,8 @@ class CheckTokenSerializer(serializers.Serializer):
     token = serializers.CharField(max_length=6, write_only=True)
 
 
-class GetPhoneNumberSerializer(serializers.Serializer):
-    phone_number = serializers.CharField()
-
-    def validate_phone_number(self, value):
-        check_phone_number = re.findall('^09[0-9]{9}$', value) or None
-        if check_phone_number is None:
-            raise serializers.ValidationError(msg.ERROR_INVALID_PHONE_NUMBER)
-        return value
+class GetPhoneNumberSerializer(BaseGetPhoneNumberUserSerializer):
+    pass
 
 
 class ChangePasswordSerializer(BaseSetPasswordUserSerializer):
@@ -62,12 +66,5 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
         return photo
 
 
-class LoginWithPasswordSerializer(serializers.Serializer):
-    phone_number = serializers.CharField()
+class LoginWithPasswordSerializer(BaseGetPhoneNumberUserSerializer):
     password = serializers.CharField(write_only=True)
-
-    def validate_phone_number(self, value):
-        check_phone_number = re.findall('^09[0-9]{9}$', value) or None
-        if check_phone_number is None:
-            raise serializers.ValidationError(msg.ERROR_INVALID_PHONE_NUMBER)
-        return value
